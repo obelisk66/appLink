@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useCallback } from "react";
 import {
   Image,
   View,
@@ -8,8 +8,9 @@ import {
   Modal,
   Text,
   Alert,
+  Linking,
 } from "react-native";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 
 import { MaterialIcons } from "@expo/vector-icons";
 import { Link } from "@/components/link";
@@ -20,23 +21,68 @@ import { colors } from "@/styles/colors";
 import { Categories } from "@/components/categories";
 import { categories } from "@/utils/categories";
 import { linkStorage, LinkStorage } from "@/app/storage/link-storage";
+import { openURL } from "expo-linking";
 
 export default function Index() {
+  const[showModal, setShowModal] = useState(false)
+  const[link, setLink] =useState<LinkStorage>({} as LinkStorage)
   const [links, setLinks] = useState<LinkStorage[]>([]);
   const [category, setCategory] = useState(categories[0].name);
 
   async function getLinks() {
     try {
+      
       const response = await linkStorage.get();
-      setLinks(response);
+
+      const filtered = response.filter((link) =>link.category === category)  
+
+
+      setLinks(filtered);
     } catch (error) {
       Alert.alert("Error", "Não foi possível listar os links");
     }
   }
+  function handleDetails(selected: LinkStorage){
+    setShowModal(true)
+    setLink(selected)
+  }
 
-  useEffect(() => {
-    getLinks();
-  }, [category]);
+async function linkRemove() {
+try{
+ await linkStorage.remove(link.id)
+ getLinks()
+ setShowModal(false)
+
+} catch (error){
+  Alert.alert("Error","Não foi possível Excluir")
+}
+  
+}
+
+
+async function handleRemove(){
+  
+   Alert.alert("Excluir","Deseja Realmente excluir?",[
+    { style : "cancel", text:"Não"},
+    {text: "Sim" , onPress: () => linkRemove},
+
+   ])
+   
+}
+
+async function handleOpen() {
+  try{
+   await Linking.openURL(link.url)
+   setShowModal(false)
+  }catch (error){
+    Alert.alert("link","Não foi possível abrir o link ")
+
+  }
+}
+
+ useFocusEffect(useCallback(() => {
+  getLinks()
+ },[category]))
 
   return (
     <View style={style.container}>
@@ -57,19 +103,19 @@ export default function Index() {
           <Link
             name={item.name}
             url={item.url}
-            onDetails={() => console.log("Clicou!")}
+            onDetails={() => handleDetails(item)}
           />
         )}
         style={style.links}
         contentContainerStyle={style.linksContent}
         showsVerticalScrollIndicator={false}
       />
-      <Modal transparent visible={false}>
+      <Modal transparent visible={showModal} animationType="slide">
         <View style={style.modal}>
           <View style={style.modalContent}>
             <View style={style.modalHeader}>
-              <Text style={style.modalCategory}>curso</Text>
-              <TouchableOpacity>
+              <Text style={style.modalCategory}>{link.category}</Text>
+              <TouchableOpacity onPress={() =>setShowModal(false)}>
                 <MaterialIcons
                   name="close"
                   size={20}
@@ -78,12 +124,12 @@ export default function Index() {
               </TouchableOpacity>
             </View>
 
-            <Text style={style.modalLinkName}>Rockseat</Text>
-            <Text style={style.modalUrl}>http://www.rocketseat.com.br</Text>
+            <Text style={style.modalLinkName}>{link.name}</Text>
+            <Text style={style.modalUrl}>{link.url}</Text>
 
             <View style={style.modalFooter}>
-              <Option name="Excluir" icon="delete" variant="secondy" />
-              <Option name="abrir" icon="language" />
+              <Option name="Excluir" icon="delete" variant="secondy" onPress={handleRemove}/>
+              <Option name="abrir" icon="language" onPress={handleOpen} />
             </View>
           </View>
         </View>

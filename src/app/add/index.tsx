@@ -1,9 +1,10 @@
 import { View, Text, TouchableOpacity, Alert } from "react-native";
-import { MaterialIcons } from "@expo/vector-icons";
+import { MaterialIcons,  } from "@expo/vector-icons";
 import { linkStorage } from "../storage/link-storage";
 
 import { styles } from "./styles";
 import { colors } from "@/styles/colors";
+import { LinkStorage } from "@/storage/link-storage";
 
 import { router } from "expo-router";
 import { Categories } from "@/components/categories";
@@ -32,7 +33,13 @@ export default function Add() {
         name,
         url,
         category,
-      });
+      })
+
+      Alert.alert("Sucesso","Novo link adicionado",[
+        {
+          text:"Ok", 
+          onPress: () => router.back(),},
+      ])
     } catch (error) {
       Alert.alert("Error", "Não foi possível salvar o link");
       console.log(error);
